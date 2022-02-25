@@ -1,0 +1,109 @@
+---------------------
+IMPORTING LIBRARIES
+---------------------
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+---------------------
+IMPORTING THE DATA
+---------------------
+Data = pd.read_csv("Population_Data.csv")
+Data.head()
+
+--------------------
+EXPLORING THE DATA
+--------------------
+Data.head()
+Data.tail()
+Data.info()
+
+-------------------
+IMPROVING THE DATA
+-------------------
+numeric_cols = ["Indians", "Foreigners", "Indian_Male", "Indian_Female",
+"Foreigners_Male", "Foreigners_Female", "Total Population"]
+def cleaner(z):
+ return z.replace(",","")
+cleaner("100,200,300")
+for i in Data[numeric_cols]:
+ Data[i] = Data[i].apply(cleaner)
+Data.head()
+
+Data.info()
+Data[numeric_cols] = Data[numeric_cols].apply(pd.to_numeric)
+Data.info()
+
+Data.head()
+Data[["Indians", "Foreigners"]].sum().sum() - Data["Total Population"].sum()
+Data[["Indian_Male", "Indian_Female"]].sum().sum() - Data["Indians"].sum()
+Data[["Foreigners_Male", "Foreigners_Female"]].sum().sum() - Data["Foreigners"].sum()
+Male_Female_Population_sum = Data["Indian_Male"] + Data["Indian_Female"] + Data["Foreigners_Male"] + Data["Foreigners_Female"] 
+Data["Others"] = Data["Total Population"] - Male_Female_Population_sum
+Data.head()
+
+Data["Region"].nunique()
+Data["Office Location Id"].nunique()
+data1 = Data.drop(columns = ["Region", "Office Location Id"])
+data1.head()
+
+------------------
+SCALING THE DATA
+------------------
+def percentage_converter(data, total, columns):
+ for i in columns:
+ data[i] = data[i]/data['Total Population']
+ return data.drop(columns=['Total Population'])
+data2 = percentage_converter(data1,'Total Population',
+data1.drop(columns=['Total Population']).columns)
+data2.head()
+
+-------------------------------
+VISUALIZING DATA FOR K-MEANS
+-------------------------------
+from sklearn.cluster import KMeans
+SSE = []
+for cluster in range(1,10):
+ kmeans = KMeans(n_clusters = cluster)
+ kmeans.fit(data2)
+ SSE.append(kmeans.inertia_)
+frame = pd.DataFrame({'cluster':range(1,10), 'SSE':SSE})
+plt.figure(figsize=(12,6))
+plt.plot(frame['cluster'], frame['SSE'], marker='o')
+plt.xlabel('Number of clusters')
+plt.ylabel('Inertia')
+
+------------------------------------
+USING K-MEANS TO PLOT CLUSTER PLOT
+------------------------------------
+kmeans = KMeans(n_clusters=2)
+kmeans.fit(data2)
+pred=kmeans.predict(data2)
+data2['cluster'] = pred
+def seg(str_x, str_y, cluster):
+ x = []
+ y = []
+
+ for i in range(cluster):
+ x.append(data2[str_x][data2['cluster']==i])
+ y.append(data2[str_y][data2['cluster']==i])
+
+ return x,y
+def plot_cluster(str_x, str_y, cluster):
+ plt.figure(figsize = (5,5), dpi = 120)
+ x,y = seg(str_x, str_y, cluster)
+
+ for i in range(cluster):
+ plt.scatter(x[i], y[i], label = 'cluster{}'.format(i))
+
+ plt.xlabel(str_x)
+ plt.ylabel(str_y)
+ plt.title(str(str_x+" Vs "+str_y))
+ plt.legend()
+
+----------------------------
+VISUALIZING CLUSTER PLOTS
+----------------------------
+plot_cluster('Indian_Male', 'Foreigners_Male',2)
+plot_cluster('Indian_Female', 'Foreigners_Female',2)
+plot_cluster('Others', 'Indians',2)
